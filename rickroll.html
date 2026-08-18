@@ -29,18 +29,14 @@
             object-fit: contain;
             display: block;
         }
-        /* Video overlay positioned over the GIF area in the poster */
         .video-overlay {
             position: absolute;
             top: 31%;
             left: 40%;
             width: 19%;
             height: 28%;
-            overflow: visible;
-            border-radius: 4px;
-            /* DEV: red border so you can see the box */
             border: 2px dashed red;
-            resize: both;
+            border-radius: 4px;
         }
         .video-overlay iframe {
             width: 100%;
@@ -48,10 +44,33 @@
             border: none;
             pointer-events: none;
         }
+        /* Resize handle - bottom right corner */
+        .resize-handle {
+            position: absolute;
+            bottom: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            background: red;
+            cursor: nwse-resize;
+            z-index: 100;
+            border: 2px solid white;
+        }
+        #coords {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: yellow;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 16px;
+            z-index: 9999;
+            border: 3px solid black;
+        }
     </style>
 </head>
 <body>
-    <div class="poster-wrapper">
+    <div class="poster-wrapper" id="posterWrapper">
         <img src="rickroll.png" alt="Stop Think Verify - QR Code Security Awareness">
         <div class="video-overlay" id="videoOverlay">
             <iframe 
@@ -59,28 +78,35 @@
                 allow="autoplay; encrypted-media" 
                 allowfullscreen>
             </iframe>
+            <div class="resize-handle" id="resizeHandle"></div>
         </div>
     </div>
 
-    <!-- DEV MODE: drag the video box, values shown in yellow box -->
-    <div id="coords" style="position:fixed;top:10px;left:10px;background:yellow;padding:10px;font-family:monospace;font-size:14px;z-index:9999;border:2px solid black;"></div>
+    <div id="coords">Loading...</div>
+
     <script>
-        const el = document.getElementById('videoOverlay');
-        const img = document.querySelector('.poster-wrapper img');
-        const coordsEl = document.getElementById('coords');
-        let dragging = false, startX, startY, origLeft, origTop;
+        var el = document.getElementById('videoOverlay');
+        var handle = document.getElementById('resizeHandle');
+        var img = document.querySelector('.poster-wrapper img');
+        var coordsEl = document.getElementById('coords');
+
+        var dragging = false;
+        var resizing = false;
+        var startX, startY, origLeft, origTop, origW, origH;
 
         function updateCoords() {
-            const imgRect = img.getBoundingClientRect();
-            const elRect = el.getBoundingClientRect();
-            const top = ((elRect.top - imgRect.top) / imgRect.height * 100).toFixed(1);
-            const left = ((elRect.left - imgRect.left) / imgRect.width * 100).toFixed(1);
-            const width = (elRect.width / imgRect.width * 100).toFixed(1);
-            const height = (elRect.height / imgRect.height * 100).toFixed(1);
+            var imgRect = img.getBoundingClientRect();
+            var elRect = el.getBoundingClientRect();
+            var top = ((elRect.top - imgRect.top) / imgRect.height * 100).toFixed(1);
+            var left = ((elRect.left - imgRect.left) / imgRect.width * 100).toFixed(1);
+            var width = (elRect.width / imgRect.width * 100).toFixed(1);
+            var height = (elRect.height / imgRect.height * 100).toFixed(1);
             coordsEl.textContent = 'top: ' + top + '% | left: ' + left + '% | width: ' + width + '% | height: ' + height + '%';
         }
 
+        // DRAG: click anywhere on the box to move it
         el.addEventListener('mousedown', function(e) {
+            if (e.target === handle) return; // don't drag when resizing
             dragging = true;
             startX = e.clientX;
             startY = e.clientY;
@@ -89,19 +115,35 @@
             e.preventDefault();
         });
 
+        // RESIZE: click the red square in the corner
+        handle.addEventListener('mousedown', function(e) {
+            resizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            origW = el.offsetWidth;
+            origH = el.offsetHeight;
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
         document.addEventListener('mousemove', function(e) {
             if (dragging) {
                 el.style.left = (origLeft + e.clientX - startX) + 'px';
                 el.style.top = (origTop + e.clientY - startY) + 'px';
                 updateCoords();
             }
+            if (resizing) {
+                el.style.width = (origW + e.clientX - startX) + 'px';
+                el.style.height = (origH + e.clientY - startY) + 'px';
+                updateCoords();
+            }
         });
 
         document.addEventListener('mouseup', function() {
             dragging = false;
+            resizing = false;
         });
 
-        new ResizeObserver(updateCoords).observe(el);
         setTimeout(updateCoords, 500);
     </script>
 </body>

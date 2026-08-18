@@ -32,26 +32,28 @@
         /* Video overlay positioned over the GIF area in the poster */
         .video-overlay {
             position: absolute;
-            /* Adjust these percentages to align with the GIF area on your poster */
             top: 31%;
             left: 40%;
             width: 19%;
             height: 28%;
-            overflow: hidden;
+            overflow: visible;
             border-radius: 4px;
+            /* DEV: red border so you can see the box */
+            border: 2px dashed red;
+            resize: both;
         }
         .video-overlay iframe {
             width: 100%;
             height: 100%;
             border: none;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
     <div class="poster-wrapper">
         <img src="rickroll.png" alt="Stop Think Verify - QR Code Security Awareness">
-        <!-- Video overlaid on top of the GIF area in the poster -->
-        <div class="video-overlay">
+        <div class="video-overlay" id="videoOverlay">
             <iframe 
                 src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&controls=0&loop=1&playlist=dQw4w9WgXcQ" 
                 allow="autoplay; encrypted-media" 
@@ -59,5 +61,48 @@
             </iframe>
         </div>
     </div>
+
+    <!-- DEV MODE: drag the video box, values shown in yellow box -->
+    <div id="coords" style="position:fixed;top:10px;left:10px;background:yellow;padding:10px;font-family:monospace;font-size:14px;z-index:9999;border:2px solid black;"></div>
+    <script>
+        const el = document.getElementById('videoOverlay');
+        const img = document.querySelector('.poster-wrapper img');
+        const coordsEl = document.getElementById('coords');
+        let dragging = false, startX, startY, origLeft, origTop;
+
+        function updateCoords() {
+            const imgRect = img.getBoundingClientRect();
+            const elRect = el.getBoundingClientRect();
+            const top = ((elRect.top - imgRect.top) / imgRect.height * 100).toFixed(1);
+            const left = ((elRect.left - imgRect.left) / imgRect.width * 100).toFixed(1);
+            const width = (elRect.width / imgRect.width * 100).toFixed(1);
+            const height = (elRect.height / imgRect.height * 100).toFixed(1);
+            coordsEl.textContent = 'top: ' + top + '% | left: ' + left + '% | width: ' + width + '% | height: ' + height + '%';
+        }
+
+        el.addEventListener('mousedown', function(e) {
+            dragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            origLeft = el.offsetLeft;
+            origTop = el.offsetTop;
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (dragging) {
+                el.style.left = (origLeft + e.clientX - startX) + 'px';
+                el.style.top = (origTop + e.clientY - startY) + 'px';
+                updateCoords();
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            dragging = false;
+        });
+
+        new ResizeObserver(updateCoords).observe(el);
+        setTimeout(updateCoords, 500);
+    </script>
 </body>
 </html>
